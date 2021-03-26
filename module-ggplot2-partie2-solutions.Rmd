@@ -1,0 +1,214 @@
+
+# ggplot partie 2 - Solutions aux exercices
+
+Assurez-vous que le package ggplot2 est installe et charge correctement!
+
+Normalement vous devriez avoir sauvegarde les donnees et le fichier RMD dans le meme dossier, et cree un projet RStudio dans ce dossier. Si c'est bien le cas, alors vous devriez pouvoir lire les donnees BeanSurvey sans avoir besoin de modifier le code ci-dessous.
+
+```{r}
+library(ggplot2)
+library(dplyr)
+library(knitr)
+
+BeanSurvey<-read.csv("bean_survey.csv")[,-1]
+
+```
+
+
+
+**Question 1: J'essaie de produire un histogramme de l'âge des agriculteurs avec des facettes différentes pour chaque village. Pouvez-vous identifier et corriger les erreurs dans mon code ?**
+```
+
+ggplot(BeanSurvey,aes(x=AGEHH))+
+  geom_hist(binwidth =5)+
+    facet_wrap(VILLAGE)
+
+```
+
+N'oubliez pas d'essayer de trouver les erreurs en exécutant le code et en vérifiant les messages d'erreur de R. Il peut parfois être très difficile de repérer l'erreur si on ne tient pas compte du message d'erreur!
+
+Il y a deux erreurs:
+Premièrement, la géométrie correcte devrait être `geom_histogram ()` plutôt que `geom_hist ()`. La saisie semi-automatique en pressant sur la touche tabulation apres avoir ecrit "geom_" peut vous aider.
+Deuxièmement, la tilde `~` manquait dans `facet_wrap ()` - rappelez-vous que cela est nécessaire dans facet_wrap avant le nom de la variable.
+
+```{r}
+ggplot(BeanSurvey,aes(x=AGEHH))+
+  geom_histogram(binwidth =5)+
+    facet_wrap(~VILLAGE)
+```
+
+
+
+
+**Question 2a: Je réalise un diagramme en bâtons du responsable de la prise de décision dans le menage, par le sexe du chef de ménage. Pouvez-vous modifier le code de façon à ce qu'il ressemble à l'exemple ci-dessous, avec les ménages dirigés par une femme colorés en "violet" et les ménages dirigés par un homme colorés en "orange" ?**
+
+```{r, echo=FALSE}
+
+ggplot(BeanSurvey,aes(y=DECISIONS,fill=GENDERHH))+
+  geom_bar()+
+    scale_fill_manual(values=c("purple","orange"))
+
+```
+
+```
+ggplot(BeanSurvey,aes(y=DECISIONS))+
+  geom_bar()
+
+```
+
+Pour obtenir le grapgique souhaite, nous devons effectuer deux modifications. Tout d'abord, nous devons définir l'esthétique de `fill` pour qu'elle soit basée sur la colonne` GENDERHH`. Les barres ont deux sortes de couleurs que nous pouvons modifier - «fill» pour la zone intérieure et «colour» pour le contour. Si nous changions la «couleur», les barres seraient toujours grisées mais avec des contours rouges et bleus. Ce n'est pas ce que nous voulons! Nous voulons changer la couleur du remplissage des barres, il faut donc modifier l'axe `fill`.
+
+Pour utiliser les couleurs violette et orange, nous devons modifier l'esthétique du remplissage en utilisant la fonction `scale_` qui convient. Comme nous voulons modifier manuellement l'esthétique/axe de `fill`, la fonction que nous devons ajouter est` scale_fill_manual`. Dans cette fonction, nous avons deux couleurs que nous devons spécifier dans l'argument `values` car il y a deux valeurs pour` GENDERHH`, nous devons donc utiliser la fonction `c ()` pour rassembler ces couleurs. Enfin la couleur a utiliser pour obtenir exactement la meme couleur que dans l'example est "purple"
+
+
+
+```{r}
+
+ggplot(BeanSurvey,aes(y=DECISIONS,fill=GENDERHH))+
+  geom_bar()+
+    scale_fill_manual(values=c("purple","orange"))
+
+```
+
+
+**Question 2b: En reprenant le graphique que vous avez créé à la question 2a, apportez maintenant quelques modifications aux étiquettes : i) supprimez l'étiquette de l'axe des y ; ii) changez l'étiquette de l'axe des x par "Nombre d'agriculteurs" ; iii) ajoutez un titre informatif**
+
+
+Je peux modifier l'étiquette de l'axe y afin qu'elle soit vide "" plutôt que de la "supprimer" - c'est un moyen plus simple de réaliser la même chose! Ainsi, mes trois étapes peuvent être effectuées dans la même fonction - `labs ()` et en appelant les étiquettes `y`,` x` et `title`.
+
+En fonction de la résolution de mon écran, je pourrais rencontrer des problèmes avec mon titre qui sort de la page. C'est là qu'il peut être utile d'ajouter également un appel à la fonction `theme` et de réduire la taille du texte en utilisant` element_text () `. Une solution alternative pourrait être de diviser le titre en deux composants - un «titre» et un «sous-titre», ou encore d'aller a la ligne avec "\n"
+
+
+```{r}
+ggplot(BeanSurvey,aes(y=DECISIONS,fill=GENDERHH))+
+  geom_bar() +
+   scale_fill_manual(values = c("purple","orange"))+
+    labs(y="", x="Nombre d'agriculteurs",title="Diagramme en barre de la prise de \ndecision par le sexe du chef de menage") +
+     theme(title = element_text(size=9))
+
+```
+
+
+**Question 3: Faites un nuage de points montrant la quantité de haricots récoltés pendant la longue saison des pluies par rapport aux quantités de haricots plantés pendant la longue saison des pluies. Placez la quantité récoltée sur l'axe des y, et la quantité plantée sur l'axe des x.**
+
+
+Ici, je dois identifier les bonnes variabls a utiliser, puis utiliser geom_point pour créer le nuage de points
+
+```{r}
+ggplot(BeanSurvey , aes(y=BEANSHARVESTED_LR,x=BEANSPLANTED_LR)) +
+ geom_point() 
+
+```
+
+**Réfléchissez maintenant à la façon de montrer également comment les différents villages sont associés à cette relation. Essayez deux options différentes :**
+
+**a) Faites des points de couleur différente pour chaque village**
+
+L'essentiel ici est de comprendre que pour «geom_point», on modifier la couleur avec «colour» plutôt que «fill». Donc, différemment que pour le diagramme à barres de Q2, cette fois, je dois mapper l'axe `colour` à la colonne` VILLAGE`.
+
+
+```{r}
+
+ggplot(BeanSurvey , aes(y=BEANSHARVESTED_LR,x=BEANSPLANTED_LR,colour=VILLAGE)) +
+ geom_point() 
+
+
+```
+
+**b) Placer les deux villages dans des facettes/panneaux différents**
+
+```{r}
+ggplot(BeanSurvey , aes(y=BEANSHARVESTED_LR,x=BEANSPLANTED_LR)) +
+ geom_point() +
+  facet_wrap(~VILLAGE)
+
+
+```
+
+N'oubliez pas d'utiliser le tilde `~` avant `VILLAGE` pour repliquer le graphique pour chaque valeur de `VILLAGE`
+
+
+**Considérez lequel de ces deux graphiques montre le plus clairement la relation. Prenez le graphique que vous préférez, et ajoutez les étiquettes et les titres des axes.**
+
+Il y a des avantages et inconvénients aux deux graphiques.
+Le «bon» graphique ici dépend exactement de ce que nous voulons mettre en évidence - les facettes montrent plus clairement la relation et repartition pour chaque village, mais rendent plus difficile la comparaison entre les villages. Les couleurs nous permettent de comparer les villages plus facilement, mais rendent plus difficile de voir les résultats au sein de chaque village.
+
+Nous pourrions bien sûr faire les deux! C'est ce que j'ai fait ici et j'ai ensuite utilisé labs pour étiqueter mes axes. Mais bien sûr, c'est plus ou moins la même présentation que l'utilisation des facettes, la couleur n'est ici qu'un élément visuel bonus.
+
+
+```{r}
+ggplot(BeanSurvey , aes(y=BEANSHARVESTED_LR,x=BEANSPLANTED_LR,colour=VILLAGE)) +
+ geom_point() +
+  facet_wrap(~VILLAGE)+
+  labs(x="Haricots plantes (kg)",y="Haricots recoltes (kg/ha)",
+  title="Hariots plantes vs Hariocts recoltes",subtitle="Longue saison des pluies",colour="Village")
+
+
+```
+
+
+**Question 4a: Faites un graphique montrant comment la quantité de haricots récoltés pendant la longue saison des pluies est liée au type de ménage (`HHTYPE`). Choisissez une géométrie pertinente pour montrer cette relation.**
+
+Lorsque nous considérons le type de graphique à créer, nous devons toujours considérer le type de variable que nous avons. Ici nous avons une variable numérique continue `BEANSHARVESTED_LR` et une variable catégorielle` HHTYPE`. Un bon graphique à faire ici pourrait être une boîte à moustaches. Cependant, cela serait en fait très trompeur en raison de la façon dont les données sont distribuées. Il y a très peu d'observations de ménages dans certains «types» - seulement deux hommes célibataires et un seul «autre». Étant donné que les boîtes à moustaches fournissent un résumé des valeurs de chaque groupe, nous devons avoir suffisamment d'observations pour pouvoir former un résumé raisonnable et significatif. Lorsque vous n'avez que quelques observations par groupe, la meilleure option est probablement d'utiliser une géométrie "point" pour montrer toutes les observations.
+
+Dans notre cas, nous avons beaucoup de points qui se chevauchent, comme dans la dernière question du module précédent. Ainsi, un `geom_jitter` peut être préférable.
+Un meilleur graphique pourrait être possible en combinant ou en supprimant les catégories ayant des tres faible effectifs. Nous en apprendrons a faire ce genre de choses la semaine prochaine!
+
+```{r}
+ggplot(BeanSurvey , aes(y=BEANSHARVESTED_LR,x=HHTYPE))+
+geom_jitter(width=0.1)
+
+```
+
+
+**Question 4b: Quel que soit le tracé que vous avez choisi pour la question 4a, vous avez peut-être constaté que les étiquettes de la variable `HHTYPE` sont assez longues et que le texte le long de l'axe est écrasé. Regardez les éléments qui peuvent être personnalisés dans `theme` et essayez de faire en sorte que ces étiquettes s'adaptent mieux en diminuant la taille de la police ou en modifiant l'angle auquel les étiquettes sont alignées sur l'axe.**
+
+Dans la fonction `theme()`, nous pouvons modifier de nombreuses choses et notamment on peut modifier le texte de l'axe des x, en utilisant la fonction ` element_text()`.  On peut rendre le texte plus lisible en changeant l'angle, la taille ainsi que l'espacement vertical. 
+
+```{r}
+ggplot(BeanSurvey , aes(y=BEANSHARVESTED_LR,x=HHTYPE))+
+  geom_jitter(width=0.1)+
+   theme(axis.text.x = element_text(size=7,angle=15, vjust=0.8))
+
+```
+
+Alternativement, on peut aussi changer le texte de l'axe en modifiant l'echelle des x avec scale_x_discrete() - discrete, car note variable x, HHTYPE est qualitative. On fait cela avec l'argument labels. Les valeurs de notre variable ne sont pas faciles a resumer cependant. Je decide aussi le mettre texte a la verticale:
+
+```{r}
+ggplot(BeanSurvey , aes(y=BEANSHARVESTED_LR,x=HHTYPE))+
+  geom_jitter(width=0.1)+
+  scale_x_discrete(labels=c("F - H absent", "F - pas de H", "H - plusieurs F", "H - une F", "Autre", "H - pas de F"))+
+  theme(axis.text.x = element_text(angle=90))
+
+```
+
+Encore une fois j'etais pas loin pendant le webinaire, mais j'avais oublie que le bon argument est "labels" et non "values". L'argument "breaks" est par ailleurs inutile pour les variables qualitatives, ce qui est logique!
+
+**Question 5: Faites un graphique montrant la relation entre le sexe du chef de ménage (`GENDERHH`), le village, (`VILLAGE`) et le fait que le ménage vende ou non ses haricots (`SELLBEANS`). Utilisez des couleurs agréables, des étiquettes d'axes sensées, un titre, et utilisez l'un des thèmes pré-définis pour que le graphique soit agréable à regarder. Pensez également à augmenter la taille de la police pour certaines étiquettes afin qu'elles soient plus lisibles.**
+
+Il y a de plusieurs façons de faire un tel graphique. La façon choisie n'est qu'une possibilite.
+
+Avec ces trois variables, la question qui m'intéresse probablement le plus est celle de savoir si le sexe du chef de ménage a une influence sur la probabilité que le ménage vend des haricots pour chaque village.
+J'ai trois variables qualitative, donc je vais partir sur un diagramme en barres. Je peux avoir une variable qui definit mes barres, une sur l'axe des x et la troisième comme facette. Les barres devraient probablement représenter ma variable d'interet principale: «Est-ce que le menage vend des haricots». Structurellement, il serait plus logique d'avoir des facettes pour le village et le sexe sur l'axe des x. Les ménages dirigés par des hommes et des femmes vivent dans un village, donc le regroupement de cette manière est plus logique et plus facile à comprendre que de regrouper les facettes par sexe et avoir le village sur l'axe des x.
+
+J'aimerais bien que mes barres représentent des pourcentages plutôt que des fréquences, car j'ai un nombre inégal de ménages dirigés par des hommes et des femmes et j'aimerais les comparer. L'utilisation de "position = fill" dans la barre geom convertit les barres des décomptes en proportions.
+
+Les étiquettes des axes sont pour une proportion - en utilisant `scale_y_continuous`, je peux changer cela en pourcentage en définissant les sauts et les étiquettes. Je peux aussi faire en sorte d'avoir un repere tous les 20% au lieu de tous les 25% seulement.
+
+
+Je peux utiliser une astuce pour l'attribution des couleurs - nous sommes plus intéressés par le% de vente de haricots. Et nous pouvons toujours déterminer le pourcentage de non-vente de haricots, car il totalisera 100%. Ainsi, lorsque je choisi mes couleurs - si je mets une couleur manquante ou fausse pour le "groupe de haricots non vendus", le graphique devient un peu plus facile à lire car je vois juste les barres constituant le% de vente de haricots.
+
+Je terminé en utilisant le thème `light` qui est claire et sobre, et en ajoutant quelques étiquettes.
+
+```{r}
+
+ggplot(BeanSurvey,aes(fill=SELLBEANS,x=GENDERHH))+
+ geom_bar(position="fill",show.legend=FALSE) +
+ scale_y_continuous(breaks=c(0,0.2,0.4,0.6,0.8,1),labels=c("0%","20%","40%","60%","80%","100%"))+
+  scale_fill_manual(values=c(NA,"darkred"))+
+   facet_wrap(~VILLAGE)+
+    labs(y="Menage vendant des haricots (%)",title="Menages vendant des haricots par genre et village",x="Genre du chef de menage")+
+     theme_light()
+
+```
+

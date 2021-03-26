@@ -1,0 +1,140 @@
+
+
+```{r setup, include=FALSE,message=FALSE,echo=FALSE}
+library(dplyr)
+library(ggplot2)
+library(knitr)
+BeanSurvey <- read.csv("bean_survey.csv")
+```
+
+
+## Solutions
+
+Tous les questions utilisent les données de l'enquête "BeanSurvey" avec lesquelles nous avons travaillé jusqu'à présent - n'oubliez pas que vous pouvez consulter la description des données et des variables dans le tutoriel.
+
+
+**Exercice 1. Récupérer les ménages qui cultivent des bananes**
+
+
+filter() est la fonction à utiliser pour ne garder que les lignes qui satisfont une certaine condition - ici la condition est que les ménages cultivent des haricots
+
+```{r}
+filter(BeanSurvey, BANANA=="Yes")
+```
+
+Nous aurions aussi pu utiliser un pipe :
+
+```{r eval=FALSE}
+BeanSurvey %>%
+  filter(BANANA=="Yes")
+```
+
+
+**Exercice 2. Identifiez et corrigez les quatre erreurs que j'ai commises dans la commande ci-dessous, pour obtenir la surface agricole médiane de tous les ménages de l'ensemble de données BeanSurvey**
+
+
+
+```
+BeanSurvey %>%
+  filter(BeanSurvey, OCCUHH="Farmer") %>%
+   sumarise(median_landArea = median(LANDAREA)
+```
+
+```{r}
+BeanSurvey %>%
+  filter(OCCUHH=="Farmer") %>%
+   summarize(mediane_landArea = median(LANDAREA))
+```
+
+1. soit BeanSurvey doit être retiré de filter(), soit la première ligne doit être supprimée
+2. la condition verifiee par la fonction filter() nécessite un double égal
+3. la fonction summarise() a été mal orthographiée
+4. la parenthèse de la fonction summarise() n'a pas été fermée
+
+
+**Exercice 3. Quels sont les 4 ménages qui ont planté la plus grande quantité de haricots pendant la courte saison des pluies ?**
+
+
+```{r}
+BeanSurvey %>% 
+  arrange(desc(BEANSPLANTED_SR)) %>%
+    slice(1:4)
+```
+
+
+
+**Exercice 4. Quelle est la moyenne, la médiane et l'écart-type du rendement en haricots par acre que les ménages ont récolté pendant la longue saison des pluies dans chaque village**
+
+
+Le rendement des haricots par acre n'est pas une variable que nous avons dans notre ensemble de données, nous devons donc la créer. mutate() est la fonction à utiliser pour cela. Nous voulons ensuite faires des calculs statistiques (moyenne, mediane, ecart-type) pour chaque village, donc nous utilisons group_by() et ensuite summarise().
+L'argument na.rm est nécessaire car il y a des valeurs manquantes dans la variable BEANSHARVESTED_LR, et donc dans yield_per_acre
+
+```{r}
+BeanSurvey %>% 
+  mutate(rdt_par_acre = BEANSHARVESTED_LR/LANDAREA) %>%
+    group_by(VILLAGE) %>%
+      summarise(moyenne= mean(rdt_par_acre, na.rm=TRUE),
+                mediane=median(rdt_par_acre, na.rm=TRUE),
+                ecart_type=sd(rdt_par_acre, na.rm=TRUE))
+```
+
+Une autre solution pour arranger le probleme de valeur manquante serait de d'abord enlever les menages avec des valeurs manquante en utilisant filter(), par exemple au tout debut de notre commande:
+
+```{r}
+BeanSurvey %>% 
+  filter(is.na(BEANSHARVESTED_LR)==FALSE) %>%
+    mutate(rdt_par_acre = BEANSHARVESTED_LR/LANDAREA) %>%
+      group_by(VILLAGE) %>%
+        summarise(moyenne= mean(rdt_par_acre),
+                  mediane=median(rdt_par_acre),
+                  ecart_type=sd(rdt_par_acre))
+```
+
+
+**Exercice 4b. Comment produiriez-vous les mêmes resumes statistiques, mais par village ET par sexe du chef de ménage plutôt que par village seulement ?**
+
+
+Nous pouvons simplement copier le code de la question 4 et ajouter la colonne GENDERHH dans la fonction group_by(). Nous nous rendons alors compte que la sortie montre une ligne supplémentaire parce qu'il y a une valeur manquante dans la colonne GENDERHH. Je décide de supprimer ce ménage pour obtenir une sortie nette qui répond à la question
+
+
+```{r}
+BeanSurvey %>% 
+  filter(is.na(BEANSHARVESTED_LR)==FALSE & is.na(GENDERHH)==FALSE) %>%
+    mutate(rdt_par_acre = BEANSHARVESTED_LR/LANDAREA) %>%
+      group_by(VILLAGE, GENDERHH) %>%
+        summarise(moyenne= mean(rdt_par_acre),
+                  mediane=median(rdt_par_acre),
+                  ecart_type=sd(rdt_par_acre))
+
+```
+
+
+**Exercice 5. Créez un nuage de points montrant pour chaque ménage qui a planté des haricots, la quantité totale de haricots plantés par rapport à la superficie de leur exploitation. Colorez les points selon le sexe du chef de ménage**
+
+
+Nous créons une variable representant la quantité totale de haricots plantés en utilisant la fonction mutate() et ensuite on utilise l'operateur pipe pour creer un graph avec ggplot() a partir du resultat de note manipulation. Nous nous rendons compte, après avoir ajouté des couleurs, qu'il nous manque - une fois de plus - une valeur dans la variable GENDERHH qui ajoute une catégorie NA supplémentaire dans notre graphique. A nous de decider si c'est un problème ou non. Je décide de le supprimer et j'ajoute donc une ligne filter() pour me débarrasser de la valeur manquante.
+
+```{r}
+BeanSurvey %>%
+  mutate(harricots_plantes = BEANSPLANTED_LR + BEANSPLANTED_SR)%>%
+    filter(is.na(GENDERHH)==FALSE) %>%
+      ggplot(aes(x=LANDAREA, y=harricots_plantes, colour=GENDERHH))+
+        geom_point()
+```
+
+
+**Exercice 6. Générez une boite a moustache de la quantité de haricots récoltés pendant la longue saison des pluies par type de composition du ménage, en ne conservant que les deux principaux types de composition du ménage. Appliquez une transformation "d'échelle" appropriée à la quantité de haricots récoltés**
+
+Ceci est la continuation d'une question des exercices ggplot.
+Nous utilisons simplement filter() pour ne retenir que les ménages dont le type de composition est soit "Femme chef de famille, pas de mari", soit "Homme chef de famille, une femme", puis on utilise le "pipe" pour creer le graphique que nous avions réalisée dans l'exercice ggplot, avec une petite modification, de la transformation "pseudo_log".
+
+```{r}
+BeanSurvey %>%
+  filter(HHTYPE=="Female headed, no husband" | HHTYPE=="Male headed one wife") %>%
+    ggplot(aes(y=BEANSHARVESTED_LR, x=HHTYPE))+
+      geom_boxplot()+
+        geom_point()+
+          scale_y_continuous(trans="pseudo_log")
+
+```
+
